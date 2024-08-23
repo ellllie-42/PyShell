@@ -1,0 +1,79 @@
+cmake_minimum_required(VERSION 3.12)  # Set a minimum CMake version
+
+# Set the project name and version
+project(PyShell VERSION 1.0 LANGUAGES CXX)
+
+# Specify the C++ standard
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+# Add include directories
+include_directories(
+    C:/msys64/mingw64/include/python3.11
+    # Include directories specific to Boost.Python
+)
+
+# Add source files for the library
+set(LIBRARY_SOURCES
+    PyShell.cpp
+)
+
+# Create a static library target
+add_library(PyShell STATIC ${LIBRARY_SOURCES})
+
+# Link libraries for the static library (if needed)
+target_link_libraries(PyShell
+    # Add libraries needed by PyShell itself
+	boost_python311-mt
+	python3.11      # Python library needed for Boost.Python
+	ws2_32
+)
+
+# Add compiler options for the library
+target_compile_options(PyShell PRIVATE
+    -Wall
+    -pthread
+)
+
+# Add compiler flags based on build type
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(PyShell PRIVATE -g)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(PyShell PRIVATE -O2)
+endif()
+
+# Add additional library directories (if needed)
+link_directories(PyShellTest
+	PyShell
+	C:/msys64/mingw64/lib
+    # Directories containing the libraries for Boost.Python and Python
+)
+
+# Add source files for the test executable
+set(TEST_SOURCES
+    main.cpp
+)
+
+# Create an executable target for testing
+add_executable(PyShellTest ${TEST_SOURCES})
+
+# Link the static library to the test executable
+target_link_libraries(PyShellTest
+    PyShell
+	boost_python311-mt
+    python3.11      # Python library needed for Boost.Python
+	ws2_32
+)
+
+# Add compiler options for the test executable
+target_compile_options(PyShellTest PRIVATE
+    -Wall
+    -pthread
+)
+
+# Add compiler flags based on build type
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(PyShellTest PRIVATE -g)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(PyShellTest PRIVATE -O2)
+endif()

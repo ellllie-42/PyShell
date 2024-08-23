@@ -1,10 +1,10 @@
-#include "python_interpreter.h"
+#include "PyShell.h"
 #include <boost/python.hpp>
 #include <boost/python/import.hpp>
 #include <fstream>
 #include <iostream>
 
-python_interpreter::python_interpreter()
+PyShell::PyShell()
     : std::iostream(this) // Initialize the iostream with the streambuf
 {
     // Initialize the Python interpreter
@@ -23,12 +23,13 @@ python_interpreter::python_interpreter()
     sys_module.attr("stderr") = string_io;
 }
 
-python_interpreter::~python_interpreter() {
+PyShell::~PyShell() {
     // Finalize the Python interpreter
+    *this << "exit()"; //apparently this fixes the memory access error. neat.
     Py_Finalize();
 }
 
-void python_interpreter::execute_file(const std::string &file_path) {
+void PyShell::execute_file(const std::string &file_path) {
     std::lock_guard<std::mutex> guard(interpreterMutex);
 
     std::ifstream file(file_path);
@@ -45,12 +46,12 @@ void python_interpreter::execute_file(const std::string &file_path) {
     }
 }
 
-bool python_interpreter::running() {
+bool PyShell::running() {
     // In this context, "running" can just check if Python is initialized
     return Py_IsInitialized();
 }
 
-std::streamsize python_interpreter::xsputn(const char* s, std::streamsize n) {
+std::streamsize PyShell::xsputn(const char* s, std::streamsize n) {
     std::lock_guard<std::mutex> guard(interpreterMutex);
     input_buffer.append(s, n);
 
@@ -64,7 +65,7 @@ std::streamsize python_interpreter::xsputn(const char* s, std::streamsize n) {
     return n;
 }
 
-int python_interpreter::overflow(int c) {
+int PyShell::overflow(int c) {
     if (c != EOF) {
         char z = c;
         return xsputn(&z, 1);
@@ -72,11 +73,8 @@ int python_interpreter::overflow(int c) {
     return c;
 }
 
-int python_interpreter::underflow() {
+int PyShell::underflow() {
     std::lock_guard<std::mutex> guard(interpreterMutex);
-
-    // Flush the StringIO buffer
-    string_io.attr("flush")(); // Ensure StringIO is flushed before reading
 
     // Get the output from StringIO
     output_buffer = boost::python::extract<std::string>(string_io.attr("getvalue")());
@@ -92,4 +90,18 @@ int python_interpreter::underflow() {
     setg(&output_buffer[0], &output_buffer[0], &output_buffer[0] + output_buffer.size());
     return std::char_traits<char>::to_int_type(*gptr()); // Use std::char_traits<char> for traits_type
 
+}
+
+std::vector<std::string> PyShell::safe_flush()
+{
+    std::vector<std::string> out;
+    std::string temp;
+    std::getline(*this,temp);
+    do
+    {
+        out.push_back(temp);
+    }
+    while(std::getline(*this,temp));
+    this->clear();
+    return out;
 }

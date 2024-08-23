@@ -1,18 +1,21 @@
-#ifndef PYTHON_INTERPRETER_H
-#define PYTHON_INTERPRETER_H
+#ifndef PyShell_H
+#define PyShell_H
 
 #include <boost/python.hpp>
 #include <streambuf>
 #include <iostream>
 #include <mutex>
+#include <string>
+#include <vector>
 
-class python_interpreter : public std::streambuf, public std::iostream
+class PyShell : public std::streambuf, public std::iostream
 {
 public:
-    python_interpreter();
-    ~python_interpreter();
+    PyShell();
+    ~PyShell();
 
     void execute_file(const std::string &file_path);
+    std::vector<std::string> safe_flush();
 
     bool running();
 
@@ -34,4 +37,4 @@ private:
     std::string output_buffer;
 };
 
-#endif // PYTHON_INTERPRETER_H
+#endif // PyShell_H
